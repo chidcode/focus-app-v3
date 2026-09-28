@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Studio | Tasks, Notes & Time Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            beige: {
+              50: '#FAF7F2',
+              100: '#F4EFE6',
+              200: '#EFEAD8',
+              300: '#E2D9C5',
+            },
+            coral: {
+              DEFAULT: '#FF6B6B',
+              hover: '#EE5A5A',
+              light: '#FFEBEB',
+            },
+            warmorange: {
+              DEFAULT: '#FF8C38',
+              hover: '#FF702E',
+              light: '#FFF0E5',
+            },
+            charcoal: {
+              DEFAULT: '#121212',
+              muted: '#4A4A4A',
+              light: '#2A2A2A',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          boxShadow: {
+            'card': '4px 4px 0px #121212',
+            'card-lg': '6px 6px 0px #121212',
+            'card-sm': '2px 2px 0px #121212',
+            'pressed': '0px 0px 0px #121212',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #F4EFE6;
+      color: #121212;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .neo-box {
+      background-color: #FFFFFF;
+      border: 2px solid #121212;
+      box-shadow: 4px 4px 0px #121212;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .neo-btn {
+      border: 2px solid #121212;
+      box-shadow: 3px 3px 0px #121212;
+      transition: all 0.1s ease;
+      font-weight: 600;
+    }
+
+    .neo-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #121212;
+    }
+
+    .neo-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #121212;
+    }
+
+    .neo-input {
+      border: 2px solid #121212;
+      background-color: #FFFFFF;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .neo-input:focus {
+      outline: none;
+      box-shadow: 3px 3px 0px #FF8C38;
+    }
+
+    .urgent-border {
+      border-color: #FF6B6B !important;
+      background-color: #FFF5F5 !important;
+    }
+
+    .urgent-badge {
+      background-color: #FF6B6B;
+      color: #FFFFFF;
+      animation: pulse-subtle 2s infinite;
+    }
+
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.82; }
+    }
+
+    @keyframes alarm-flash {
+      0%, 100% { background-color: #FF6B6B; }
+      50% { background-color: #FF8C38; }
+    }
+
+    .alarm-active-bg {
+      animation: alarm-flash 0.8s infinite;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F4EFE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #121212;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-charcoal">
+
+  <div id="alarmBanner" class="hidden fixed top-0 left-0 right-0 z-50 alarm-active-bg text-white p-4 shadow-xl border-b-4 border-charcoal">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl animate-bounce">🚨</span>
+        <div>
+          <h4 class="font-extrabold text-lg tracking-wide uppercase" id="alarmTitle">URGENT ALARM TRIGGERED!</h4>
+          <p class="text-sm font-medium text-white/90" id="alarmMessage">An urgent task or reminder requires your attention!</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="stopAlarmSound()" class="bg-charcoal hover:bg-black text-white px-6 py-2.5 rounded-xl font-bold border-2 border-white shadow-card hover:scale-105 transition-all">
+          🛑 STOP ALARM
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <header class="border-b-2 border-charcoal bg-white sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Logo & Live Date -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-coral border-2 border-charcoal shadow-card-sm flex items-center justify-center font-extrabold text-white text-xl">
+            FS
+          </div>
+          <div>
+            <h1 class="font-extrabold text-xl leading-none text-charcoal tracking-tight">Focus Studio</h1>
+            <p class="text-xs font-semibold text-charcoal-muted mt-0.5">Tasks • Notes • Pomodoro</p>
+          </div>
+        </div>
+        <div class="text-right md:text-left md:ml-6 pl-4 border-l-2 border-stone-200">
+          <div id="currentTimeDisplay" class="font-mono text-sm font-bold text-charcoal">00:00:00 AM</div>
+          <div id="currentDateDisplay" class="text-xs text-charcoal-muted font-medium">Mon, Jan 1</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-2 bg-beige-100 p-1.5 rounded-xl border-2 border-charcoal w-full md:w-auto justify-center overflow-x-auto">
+        <button id="tabBtnTasks" onclick="switchTab('tasks')" class="neo-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-coral text-white border-charcoal">
+          <span>📋</span> To-Do List
+          <span id="pendingTasksBadge" class="ml-1 px-2 py-0.5 text-xs bg-white text-charcoal rounded-full font-extrabold">0</span>
+        </button>
+        <button id="tabBtnNotes" onclick="switchTab('notes')" class="neo-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-white text-charcoal border-charcoal">
+          <span>📝</span> Notes & Reminders
+        </button>
+        <button id="tabBtnTimer" onclick="switchTab('timer')" class="neo-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-white text-charcoal border-charcoal">
+          <span>⏱️</span> Focus Timer
+        </button>
+      </nav>
+
+      <!-- Audio Test & Sound Indicator -->
+      <div class="hidden lg:flex items-center gap-2">
+        <button onclick="testAlarmSound()" class="neo-btn bg-warmorange hover:bg-warmorange-hover text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
+          <span>🔔</span> Test Alarm
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: TO-DO LIST                          -->
+    <!-- ========================================== -->
+    <section id="viewTasks" class="space-y-6">
+      
+      <!-- Top Grid: Task Form + Overview Stats -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Task Creation Card -->
+        <div class="lg:col-span-2 neo-box rounded-2xl p-6 bg-white">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-extrabold text-charcoal flex items-center gap-2">
+              <span class="p-1.5 bg-coral-light rounded-lg border border-coral text-coral">➕</span> Create New Task
+            </h2>
+            <span class="text-xs font-bold px-2.5 py-1 bg-beige-100 rounded-md border border-charcoal">Organize & Track</span>
+          </div>
+
+          <form id="taskForm" onsubmit="handleAddTask(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Task Title <span class="text-coral">*</span></label>
+              <input type="text" id="taskTitleInput" required placeholder="e.g. Finish Quarterly Financial Report" class="neo-input w-full px-4 py-2.5 rounded-xl text-sm font-medium">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Category</label>
+                <select id="taskCategoryInput" class="neo-input w-full px-3 py-2.5 rounded-xl text-sm font-medium bg-white">
+                  <option value="Work">🏢 Work</option>
+                  <option value="Study">📚 Study</option>
+                  <option value="Personal">🏠 Personal</option>
+                  <option value="Health">💪 Health</option>
+                  <option value="Project">🚀 Project</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Est. Time (mins)</label>
+                <input type="number" id="taskEstTimeInput" min="5" max="480" step="5" value="25" class="neo-input w-full px-3 py-2.5 rounded-xl text-sm font-medium">
+              </div>
+
+              <div class="flex items-end">
+                <label class="neo-box w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-warmorange-light cursor-pointer hover:bg-orange-100 transition-all border-2 border-charcoal">
+                  <input type="checkbox" id="taskUrgentInput" class="w-4 h-4 accent-coral rounded cursor-pointer">
+                  <span class="text-sm font-extrabold text-charcoal">🚨 Urgent</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="submit" class="neo-btn bg-coral hover:bg-coral-hover text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+                <span>➕</span> Add Task
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Task Stats Summary Card -->
+        <div class="neo-box rounded-2xl p-6 bg-white flex flex-col justify-between">
+          <div>
+            <h3 class="text-lg font-extrabold text-charcoal mb-4 flex items-center gap-2">
+              <span>📊</span> Activity Overview
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between items-center p-3 bg-beige-50 rounded-xl border border-charcoal">
+                <span class="text-sm font-bold text-charcoal-muted">Total Tasks</span>
+                <span id="statTotalTasks" class="text-lg font-extrabold font-mono text-charcoal">0</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-coral-light rounded-xl border border-coral">
+                <span class="text-sm font-bold text-coral">Urgent Priority</span>
+                <span id="statUrgentTasks" class="text-lg font-extrabold font-mono text-coral">0</span>
+              </div>
+              <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-xl border border-emerald-600">
+                <span class="text-sm font-bold text-emerald-800">Completed</span>
+                <span id="statCompletedTasks" class="text-lg font-extrabold font-mono text-emerald-800">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t-2 border-stone-100">
+            <div class="flex justify-between items-center text-xs font-bold text-charcoal-muted">
+              <span>Total Focused Time Logged:</span>
+              <span id="statTotalFocusTime" class="font-mono text-sm text-warmorange font-extrabold">0 mins</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Filter Toolbar -->
+      <div class="neo-box rounded-2xl p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <span class="text-xs font-extrabold uppercase text-charcoal-muted mr-1">Filter:</span>
+          <button onclick="setTaskFilter('all')" id="filterBtnAll" class="neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-charcoal text-white">All Tasks</button>
+          <button onclick="setTaskFilter('active')" id="filterBtnActive" class="neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-white text-charcoal">Active</button>
+          <button onclick="setTaskFilter('urgent')" id="filterBtnUrgent" class="neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-white text-coral">🚨 Urgent Only</button>
+          <button onclick="setTaskFilter('completed')" id="filterBtnCompleted" class="neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-white text-charcoal">Completed</button>
+        </div>
+
+        <div class="w-full sm:w-64">
+          <input type="text" id="taskSearchInput" oninput="renderTasks()" placeholder="🔍 Search tasks..." class="neo-input w-full px-3 py-1.5 text-xs rounded-lg font-medium">
+        </div>
+      </div>
+
+      <!-- Task List Display Container -->
+      <div id="taskListContainer" class="space-y-3">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: NOTES & REMINDERS                   -->
+    <!-- ========================================== -->
+    <section id="viewNotes" class="hidden space-y-6">
+      
+      <!-- Top Grid: Note Creator + Search -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Note Creator Form Card -->
+        <div class="lg:col-span-2 neo-box rounded-2xl p-6 bg-white">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-extrabold text-charcoal flex items-center gap-2">
+              <span class="p-1.5 bg-warmorange-light rounded-lg border border-warmorange text-warmorange">✍️</span> New Note & Reminders
+            </h2>
+            <span class="text-xs font-bold px-2.5 py-1 bg-beige-100 rounded-md border border-charcoal">Persistent Notepad</span>
+          </div>
+
+          <form id="noteForm" onsubmit="handleAddNote(event)" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Note Title <span class="text-coral">*</span></label>
+                <input type="text" id="noteTitleInput" required placeholder="e.g. Meeting Key Takeaways & Action Items" class="neo-input w-full px-4 py-2.5 rounded-xl text-sm font-medium">
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Category Tag</label>
+                <select id="noteCategoryInput" class="neo-input w-full px-3 py-2.5 rounded-xl text-sm font-medium bg-white">
+                  <option value="General">💡 General</option>
+                  <option value="Ideas">✨ Ideas</option>
+                  <option value="Work">🏢 Work</option>
+                  <option value="Reminders">⏰ Reminders</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Note Body / Details</label>
+              <textarea id="noteBodyInput" rows="3" placeholder="Write down your thoughts, instructions, or meeting points..." class="neo-input w-full px-4 py-2.5 rounded-xl text-sm font-medium resize-y"></textarea>
+            </div>
+
+            <!-- Reminder Add Section -->
+            <div class="p-4 bg-beige-50 rounded-xl border-2 border-stone-300 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase text-charcoal flex items-center gap-1.5">
+                  <span>⏰</span> Schedule Timed Alarm Reminder
+                </span>
+                <label class="flex items-center gap-1.5 text-xs font-bold text-coral cursor-pointer">
+                  <input type="checkbox" id="noteUrgentInput" class="accent-coral w-4 h-4 rounded">
+                  <span>🚨 Mark Note as Urgent Alarm</span>
+                </label>
+              </div>
+
+              <div class="flex flex-col sm:flex-row items-center gap-3">
+                <input type="datetime-local" id="noteReminderDateTime" class="neo-input w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-medium">
+                <span class="text-xs text-charcoal-muted font-medium">Trigger will sound synth audio alarm on due date/time</span>
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="submit" class="neo-btn bg-warmorange hover:bg-warmorange-hover text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+                <span>💾</span> Save Note
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Notes Search & Filter -->
+        <div class="neo-box rounded-2xl p-6 bg-white flex flex-col justify-between">
+          <div class="space-y-4">
+            <h3 class="text-lg font-extrabold text-charcoal flex items-center gap-2">
+              <span>🔍</span> Search & Filter
+            </h3>
+
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Keyword Search</label>
+              <input type="text" id="noteSearchInput" oninput="renderNotes()" placeholder="Type to filter notes..." class="neo-input w-full px-3 py-2 text-sm rounded-xl">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-charcoal mb-1">Filter by Category</label>
+              <select id="noteCategoryFilter" onchange="renderNotes()" class="neo-input w-full px-3 py-2 text-sm rounded-xl bg-white">
+                <option value="ALL">All Categories</option>
+                <option value="General">💡 General</option>
+                <option value="Ideas">✨ Ideas</option>
+                <option value="Work">🏢 Work</option>
+                <option value="Reminders">⏰ Reminders</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="p-3 bg-beige-100 rounded-xl border border-charcoal mt-4">
+            <div class="flex items-center justify-between text-xs font-bold text-charcoal">
+              <span>Active Scheduled Reminders:</span>
+              <span id="activeRemindersCount" class="font-mono text-sm font-extrabold text-coral">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes Grid Container -->
+      <div id="notesGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: FOCUS TIMER & LOG                   -->
+    <!-- ========================================== -->
+    <section id="viewTimer" class="hidden space-y-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Timer Main Panel -->
+        <div class="lg:col-span-7 neo-box rounded-2xl p-6 sm:p-8 bg-white flex flex-col items-center justify-between text-center space-y-6">
+          
+          <!-- Task Linking Header -->
+          <div class="w-full space-y-2">
+            <span class="text-xs font-extrabold tracking-wider uppercase text-charcoal-muted">Focus Mode Target</span>
+            <div class="max-w-md mx-auto">
+              <select id="timerTaskSelect" onchange="handleTimerTaskChange()" class="neo-input w-full px-4 py-2.5 rounded-xl text-sm font-bold bg-beige-50">
+                <option value="">🎯 General Unlinked Focus Session</option>
+                <!-- Tasks populated via JS -->
+              </select>
+            </div>
+            <div id="timerSelectedTaskDetails" class="hidden text-xs text-charcoal font-medium">
+              Task Est: <span id="timerTaskEst" class="font-mono font-bold">25m</span> | Logged: <span id="timerTaskLogged" class="font-mono font-bold text-warmorange">0m</span>
+            </div>
+          </div>
+
+          <!-- Pomodoro Presets Selector -->
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button onclick="setTimerPreset(25, 'Focus')" class="timer-preset-btn neo-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-coral text-white">
+              🧠 Focus (25m)
+            </button>
+            <button onclick="setTimerPreset(5, 'Short Break')" class="timer-preset-btn neo-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-charcoal">
+              ☕ Short Break (5m)
+            </button>
+            <button onclick="setTimerPreset(15, 'Long Break')" class="timer-preset-btn neo-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-charcoal">
+              🌴 Long Break (15m)
+            </button>
+          </div>
+
+          <!-- Digital Timer Clock Display -->
+          <div class="relative py-6 my-2 flex flex-col items-center justify-center w-full">
+            <div class="w-64 h-64 sm:w-72 sm:h-72 rounded-full border-4 border-charcoal bg-beige-50 shadow-card flex flex-col items-center justify-center relative overflow-hidden">
+              <!-- Background progress ring visual -->
+              <div id="timerProgressBg" class="absolute inset-0 bg-coral/10 origin-bottom transition-all duration-1000" style="height: 0%;"></div>
+              
+              <div class="relative z-10 flex flex-col items-center">
+                <span id="timerModeLabel" class="text-xs font-extrabold uppercase tracking-widest text-charcoal-muted mb-1">Focus Session</span>
+                <span id="timerDisplay" class="font-mono text-5xl sm:text-6xl font-extrabold text-charcoal tracking-tight">25:00</span>
+                <span id="timerStatusSub" class="text-xs font-bold text-warmorange mt-2">Ready to Start</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Time Input Bar -->
+          <div class="flex items-center justify-center gap-2 text-xs font-bold">
+            <span>Custom Minutes:</span>
+            <input type="number" id="customTimerMins" min="1" max="180" value="25" class="neo-input w-20 px-2 py-1 rounded-lg font-mono text-center">
+            <button onclick="applyCustomTimer()" class="neo-btn px-3 py-1 bg-beige-200 text-charcoal rounded-lg">Apply</button>
+          </div>
+
+          <!-- Controls Button Toolbar -->
+          <div class="flex items-center justify-center gap-4 pt-2">
+            <button id="btnStartPauseTimer" onclick="toggleTimer()" class="neo-btn bg-coral hover:bg-coral-hover text-white px-8 py-3.5 rounded-2xl font-extrabold text-base flex items-center gap-2 shadow-card">
+              <span id="startPauseIcon">▶️</span> <span id="startPauseText">Start Focus</span>
+            </button>
+            <button onclick="resetTimer()" class="neo-btn bg-white hover:bg-stone-100 text-charcoal px-5 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-1.5">
+              <span>🔄</span> Reset
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Logged Time History Column -->
+        <div class="lg:col-span-5 neo-box rounded-2xl p-6 bg-white flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4 border-b-2 border-stone-100 pb-3">
+              <h3 class="text-lg font-extrabold text-charcoal flex items-center gap-2">
+                <span>📜</span> Time Spent History
+              </h3>
+              <button onclick="clearTimeLogs()" class="text-xs font-bold text-coral hover:underline">Clear History</button>
+            </div>
+
+            <div id="timeLogList" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+              <!-- Logs populated dynamically -->
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t-2 border-stone-200 bg-beige-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
+            <div class="flex justify-between items-center text-sm font-bold">
+              <span>Total Session Sessions Completed:</span>
+              <span id="totalSessionsCount" class="font-mono text-base font-extrabold text-charcoal">0</span>
+            </div>
+            <div class="flex justify-between items-center text-sm font-bold mt-1">
+              <span>Accumulated Focus Time:</span>
+              <span id="accumulatedTimeDisplay" class="font-mono text-base font-extrabold text-warmorange">0 mins</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <div id="editTaskModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="neo-box rounded-2xl bg-white max-w-md w-full p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-extrabold text-lg">Edit Task</h3>
+        <button onclick="closeEditTaskModal()" class="text-gray-500 font-bold hover:text-black">✕</button>
+      </div>
+      <input type="hidden" id="editTaskId">
+      <div>
+        <label class="block text-xs font-bold uppercase mb-1">Title</label>
+        <input type="text" id="editTaskTitle" class="neo-input w-full px-3 py-2 text-sm rounded-xl">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold uppercase mb-1">Category</label>
+          <select id="editTaskCategory" class="neo-input w-full px-3 py-2 text-sm rounded-xl bg-white">
+            <option value="Work">🏢 Work</option>
+            <option value="Study">📚 Study</option>
+            <option value="Personal">🏠 Personal</option>
+            <option value="Health">💪 Health</option>
+            <option value="Project">🚀 Project</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase mb-1">Est Mins</label>
+          <input type="number" id="editTaskEst" class="neo-input w-full px-3 py-2 text-sm rounded-xl">
+        </div>
+      </div>
+      <label class="flex items-center gap-2 cursor-pointer font-bold text-sm">
+        <input type="checkbox" id="editTaskUrgent" class="accent-coral w-4 h-4">
+        <span>🚨 Urgent Task Priority</span>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeEditTaskModal()" class="neo-btn px-4 py-2 rounded-xl text-xs bg-gray-200">Cancel</button>
+        <button onclick="saveTaskEdit()" class="neo-btn px-4 py-2 rounded-xl text-xs bg-coral text-white">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t-2 border-charcoal bg-white py-4 mt-12">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs font-bold text-charcoal-muted flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>Focus Studio • Productivity & Time Tracking</div>
+      <div class="text-charcoal">All data persisted in browser local storage</div>
+    </div>
+  </footer>
+
+
+  <script>
+    /* ===================================================================
+       APPLICATION STATE & LOCAL STORAGE INITIALIZATION
+       =================================================================== */
+    const STORAGE_KEY_TASKS = 'focus_studio_tasks_v1';
+    const STORAGE_KEY_NOTES = 'focus_studio_notes_v1';
+    const STORAGE_KEY_LOGS = 'focus_studio_logs_v1';
+
+    let tasks = [];
+    let notes = [];
+    let timeLogs = [];
+
+    let currentTab = 'tasks';
+    let currentTaskFilter = 'all';
+
+    // Timer State
+    let timerInterval = null;
+    let timerTotalSeconds = 25 * 60;
+    let timerRemainingSeconds = 25 * 60;
+    let isTimerRunning = false;
+    let currentTimerMode = 'Focus';
+    let selectedTaskIdForTimer = '';
+
+    // Alarm Sound AudioContext Synth
+    let audioCtx = null;
+    let alarmInterval = null;
+    let isAlarmRinging = false;
+
+    /* ===================================================================
+       WEB AUDIO API SYNTHESIZER FOR ALARM SOUNDS
+       =================================================================== */
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playBeep(frequency = 880, type = 'sine', duration = 0.25) {
+      initAudioContext();
+      if (!audioCtx) return;
+
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.error('Audio play error:', e);
+      }
+    }
+
+    function triggerAlarmSequence(title = "URGENT ALERT!", message = "Action required!") {
+      initAudioContext();
+      isAlarmRinging = true;
+
+      document.getElementById('alarmTitle').innerText = title;
+      document.getElementById('alarmMessage').innerText = message;
+      document.getElementById('alarmBanner').classList.remove('hidden');
+
+      if (alarmInterval) clearInterval(alarmInterval);
+
+      // Sound pattern alternating tones
+      let toggle = false;
+      playBeep(880, 'square', 0.2);
+
+      alarmInterval = setInterval(() => {
+        if (!isAlarmRinging) return;
+        if (toggle) {
+          playBeep(880, 'square', 0.2);
+        } else {
+          playBeep(659.25, 'square', 0.2);
+        }
+        toggle = !toggle;
+      }, 350);
+    }
+
+    function stopAlarmSound() {
+      isAlarmRinging = false;
+      if (alarmInterval) clearInterval(alarmInterval);
+      document.getElementById('alarmBanner').classList.add('hidden');
+    }
+
+    function testAlarmSound() {
+      triggerAlarmSequence("TEST ALARM SYSTEM", "Sound synthesizer check complete. Click Stop to silence.");
+    }
+
+
+    /* ===================================================================
+       INITIALIZATION & SEED DATA LOAD
+       =================================================================== */
+    window.onload = function() {
+      loadStoredData();
+      
+      // Seed default sample data if empty
+      if (tasks.length === 0 && notes.length === 0) {
+        seedInitialData();
+      }
+
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      renderAll();
+
+      // Check scheduled reminders every 5 seconds
+      setInterval(checkScheduledReminders, 5000);
+    };
+
+    function loadStoredData() {
+      try {
+        const tData = localStorage.getItem(STORAGE_KEY_TASKS);
+        const nData = localStorage.getItem(STORAGE_KEY_NOTES);
+        const lData = localStorage.getItem(STORAGE_KEY_LOGS);
+
+        tasks = tData ? JSON.parse(tData) : [];
+        notes = nData ? JSON.parse(nData) : [];
+        timeLogs = lData ? JSON.parse(lData) : [];
+      } catch (e) {
+        console.error("Failed loading from localStorage:", e);
+      }
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+        localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(notes));
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(timeLogs));
+      } catch (e) {
+        console.error("Failed saving to localStorage:", e);
+      }
+    }
+
+    function seedInitialData() {
+      tasks = [
+        {
+          id: 'task-1',
+          title: 'Review Project Roadmap & Sprint Goals',
+          category: 'Work',
+          estMinutes: 30,
+          loggedMinutes: 15,
+          urgent: true,
+          completed: false,
+          createdAt: Date.now()
+        },
+        {
+          id: 'task-2',
+          title: 'Study Chapter 4: React & Web Audio API',
+          category: 'Study',
+          estMinutes: 45,
+          loggedMinutes: 0,
+          urgent: false,
+          completed: false,
+          createdAt: Date.now() - 10000
+        }
+      ];
+
+      notes = [
+        {
+          id: 'note-1',
+          title: 'Weekly Team Sync Notes',
+          body: 'Prioritize bug fixes for the focus tracker and prepare demo slides for Friday.',
+          category: 'Work',
+          urgent: true,
+          reminders: [
+            { id: 'rem-1', datetime: new Date(Date.now() + 3600000).toISOString().slice(0, 16), fired: false }
+          ],
+          createdAt: Date.now()
+        }
+      ];
+
+      timeLogs = [
+        {
+          id: 'log-1',
+          taskTitle: 'Review Project Roadmap & Sprint Goals',
+          durationMinutes: 15,
+          mode: 'Focus',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ];
+
+      saveData();
+    }
+
+
+    /* ===================================================================
+       NAVIGATION & UI CONTROLS
+       =================================================================== */
+    function switchTab(tabName) {
+      currentTab = tabName;
+      
+      const views = {
+        tasks: document.getElementById('viewTasks'),
+        notes: document.getElementById('viewNotes'),
+        timer: document.getElementById('viewTimer')
+      };
+
+      const btns = {
+        tasks: document.getElementById('tabBtnTasks'),
+        notes: document.getElementById('tabBtnNotes'),
+        timer: document.getElementById('tabBtnTimer')
+      };
+
+      Object.keys(views).forEach(key => {
+        if (key === tabName) {
+          views[key].classList.remove('hidden');
+          btns[key].className = "neo-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-coral text-white border-charcoal";
+        } else {
+          views[key].classList.add('hidden');
+          btns[key].className = "neo-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-white text-charcoal border-charcoal";
+        }
+      });
+
+      if (tabName === 'timer') {
+        populateTimerTaskDropdown();
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('currentTimeDisplay').innerText = now.toLocaleTimeString();
+      document.getElementById('currentDateDisplay').innerText = now.toLocaleDateString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    function renderAll() {
+      renderTasks();
+      renderNotes();
+      renderTimerLogs();
+    }
+
+
+    /* ===================================================================
+       TAB 1: TO-DO LIST MODULE
+       =================================================================== */
+    function handleAddTask(e) {
+      e.preventDefault();
+      initAudioContext();
+
+      const titleInput = document.getElementById('taskTitleInput');
+      const categoryInput = document.getElementById('taskCategoryInput');
+      const estInput = document.getElementById('taskEstTimeInput');
+      const urgentInput = document.getElementById('taskUrgentInput');
+
+      const newTask = {
+        id: 'task-' + Date.now(),
+        title: titleInput.value.trim(),
+        category: categoryInput.value,
+        estMinutes: parseInt(estInput.value) || 25,
+        loggedMinutes: 0,
+        urgent: urgentInput.checked,
+        completed: false,
+        createdAt: Date.now()
+      };
+
+      tasks.unshift(newTask);
+      saveData();
+      renderTasks();
+
+      titleInput.value = '';
+      urgentInput.checked = false;
+
+      if (newTask.urgent) {
+        playBeep(1000, 'sine', 0.15);
+      }
+    }
+
+    function toggleTaskComplete(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        saveData();
+        renderTasks();
+      }
+    }
+
+    function deleteTask(taskId) {
+      tasks = tasks.filter(t => t.id !== taskId);
+      saveData();
+      renderTasks();
+    }
+
+    function openEditTaskModal(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      document.getElementById('editTaskId').value = task.id;
+      document.getElementById('editTaskTitle').value = task.title;
+      document.getElementById('editTaskCategory').value = task.category;
+      document.getElementById('editTaskEst').value = task.estMinutes;
+      document.getElementById('editTaskUrgent').checked = task.urgent;
+
+      document.getElementById('editTaskModal').classList.remove('hidden');
+    }
+
+    function closeEditTaskModal() {
+      document.getElementById('editTaskModal').classList.add('hidden');
+    }
+
+    function saveTaskEdit() {
+      const id = document.getElementById('editTaskId').value;
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.title = document.getElementById('editTaskTitle').value.trim();
+        task.category = document.getElementById('editTaskCategory').value;
+        task.estMinutes = parseInt(document.getElementById('editTaskEst').value) || 25;
+        task.urgent = document.getElementById('editTaskUrgent').checked;
+        saveData();
+        renderTasks();
+      }
+      closeEditTaskModal();
+    }
+
+    function focusOnTask(taskId) {
+      selectedTaskIdForTimer = taskId;
+      switchTab('timer');
+      const dropdown = document.getElementById('timerTaskSelect');
+      dropdown.value = taskId;
+      handleTimerTaskChange();
+    }
+
+    function setTaskFilter(filter) {
+      currentTaskFilter = filter;
+      const btns = {
+        all: document.getElementById('filterBtnAll'),
+        active: document.getElementById('filterBtnActive'),
+        urgent: document.getElementById('filterBtnUrgent'),
+        completed: document.getElementById('filterBtnCompleted')
+      };
+
+      Object.keys(btns).forEach(k => {
+        if (k === filter) {
+          btns[k].className = "neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-charcoal text-white";
+        } else {
+          btns[k].className = "neo-btn px-3 py-1.5 text-xs rounded-lg font-bold bg-white text-charcoal";
+        }
+      });
+
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const container = document.getElementById('taskListContainer');
+      const searchQuery = (document.getElementById('taskSearchInput').value || '').toLowerCase();
+
+      // Filter tasks
+      let filtered = tasks.filter(t => {
+        const matchesSearch = t.title.toLowerCase().includes(searchQuery);
+        if (!matchesSearch) return false;
+
+        if (currentTaskFilter === 'active') return !t.completed;
+        if (currentTaskFilter === 'urgent') return t.urgent && !t.completed;
+        if (currentTaskFilter === 'completed') return t.completed;
+        return true;
+      });
+
+      // Update counters
+      const pendingCount = tasks.filter(t => !t.completed).length;
+      const urgentCount = tasks.filter(t => t.urgent && !t.completed).length;
+      const completedCount = tasks.filter(t => t.completed).length;
+      const totalLoggedMins = tasks.reduce((sum, t) => sum + (t.loggedMinutes || 0), 0);
+
+      document.getElementById('pendingTasksBadge').innerText = pendingCount;
+      document.getElementById('statTotalTasks').innerText = tasks.length;
+      document.getElementById('statUrgentTasks').innerText = urgentCount;
+      document.getElementById('statCompletedTasks').innerText = completedCount;
+      document.getElementById('statTotalFocusTime').innerText = `${totalLoggedMins} mins`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="neo-box p-8 rounded-2xl bg-white text-center text-charcoal-muted">
+            <span class="text-3xl block mb-2">🎈</span>
+            <p class="font-bold text-sm">No tasks found in this view.</p>
+            <p class="text-xs text-stone-500 mt-1">Add a new task above to get started!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const urgentStyle = t.urgent && !t.completed ? 'urgent-border' : '';
+        const categoryColors = {
+          Work: 'bg-blue-100 text-blue-900 border-blue-400',
+          Study: 'bg-purple-100 text-purple-900 border-purple-400',
+          Personal: 'bg-emerald-100 text-emerald-900 border-emerald-400',
+          Health: 'bg-pink-100 text-pink-900 border-pink-400',
+          Project: 'bg-amber-100 text-amber-900 border-amber-400'
+        };
+
+        return `
+          <div class="neo-box p-4 rounded-xl bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${urgentStyle} ${t.completed ? 'opacity-70 bg-stone-50' : ''}">
+            
+            <div class="flex items-start gap-3 flex-1">
+              <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete('${t.id}')" class="mt-1 w-5 h-5 accent-coral cursor-pointer rounded">
+              
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="${t.completed ? 'line-through text-stone-500' : 'font-extrabold'} text-sm text-charcoal">${t.title}</span>
+                  ${t.urgent ? `<span class="px-2 py-0.5 text-[10px] font-extrabold rounded-md urgent-badge border border-coral">🚨 URGENT</span>` : ''}
+                  <span class="px-2 py-0.5 text-[10px] font-bold rounded-md border ${categoryColors[t.category] || 'bg-gray-100'}">${t.category}</span>
+                </div>
+                
+                <div class="text-xs text-charcoal-muted font-medium flex items-center gap-3">
+                  <span>Est: <strong class="font-mono text-charcoal">${t.estMinutes}m</strong></span>
+                  <span>•</span>
+                  <span>Logged: <strong class="font-mono text-warmorange">${t.loggedMinutes || 0}m</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end sm:self-center">
+              ${!t.completed ? `
+                <button onclick="focusOnTask('${t.id}')" class="neo-btn bg-warmorange-light hover:bg-warmorange hover:text-white text-charcoal px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-charcoal">
+                  <span>⏱️</span> Focus Task
+                </button>
+              ` : ''}
+              
+              <button onclick="openEditTaskModal('${t.id}')" class="neo-btn bg-white hover:bg-stone-100 text-charcoal px-2.5 py-1.5 rounded-lg text-xs font-bold border border-charcoal">
+                ✏️
+              </button>
+
+              <button onclick="deleteTask('${t.id}')" class="neo-btn bg-coral-light hover:bg-coral hover:text-white text-coral px-2.5 py-1.5 rounded-lg text-xs font-bold border border-coral">
+                🗑️
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+
+    /* ===================================================================
+       TAB 2: NOTES & REMINDERS MODULE
+       =================================================================== */
+    function handleAddNote(e) {
+      e.preventDefault();
+      initAudioContext();
+
+      const titleInput = document.getElementById('noteTitleInput');
+      const bodyInput = document.getElementById('noteBodyInput');
+      const categoryInput = document.getElementById('noteCategoryInput');
+      const urgentInput = document.getElementById('noteUrgentInput');
+      const reminderInput = document.getElementById('noteReminderDateTime');
+
+      const remindersList = [];
+      if (reminderInput.value) {
+        remindersList.push({
+          id: 'rem-' + Date.now(),
+          datetime: reminderInput.value,
+          fired: false
+        });
+      }
+
+      const newNote = {
+        id: 'note-' + Date.now(),
+        title: titleInput.value.trim(),
+        body: bodyInput.value.trim(),
+        category: categoryInput.value,
+        urgent: urgentInput.checked,
+        reminders: remindersList,
+        createdAt: Date.now()
+      };
+
+      notes.unshift(newNote);
+      saveData();
+      renderNotes();
+
+      titleInput.value = '';
+      bodyInput.value = '';
+      reminderInput.value = '';
+      urgentInput.checked = false;
+
+      if (newNote.urgent) {
+        playBeep(900, 'triangle', 0.2);
+      }
+    }
+
+    function deleteNote(noteId) {
+      notes = notes.filter(n => n.id !== noteId);
+      saveData();
+      renderNotes();
+    }
+
+    function addReminderToNote(noteId) {
+      const note = notes.find(n => n.id === noteId);
+      if (!note) return;
+
+      const dateTimeStr = prompt("Enter reminder date & time (YYYY-MM-DDTHH:MM format):", new Date(Date.now() + 1800000).toISOString().slice(0, 16));
+      if (dateTimeStr) {
+        note.reminders.push({
+          id: 'rem-' + Date.now(),
+          datetime: dateTimeStr,
+          fired: false
+        });
+        saveData();
+        renderNotes();
+      }
+    }
+
+    function deleteReminder(noteId, remId) {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        note.reminders = note.reminders.filter(r => r.id !== remId);
+        saveData();
+        renderNotes();
+      }
+    }
+
+    function checkScheduledReminders() {
+      const now = new Date();
+
+      notes.forEach(note => {
+        note.reminders.forEach(rem => {
+          if (!rem.fired) {
+            const remTime = new Date(rem.datetime);
+            if (now >= remTime) {
+              rem.fired = true;
+              saveData();
+              renderNotes();
+
+              // Trigger urgent audio alarm
+              triggerAlarmSequence(
+                `REMINDER: ${note.title.toUpperCase()}`,
+                note.body ? note.body.substring(0, 80) : "Scheduled reminder time has arrived!"
+              );
+            }
+          }
+        });
+      });
+    }
+
+    function renderNotes() {
+      const container = document.getElementById('notesGridContainer');
+      const searchQuery = (document.getElementById('noteSearchInput').value || '').toLowerCase();
+      const categoryFilter = document.getElementById('noteCategoryFilter').value;
+
+      let filtered = notes.filter(n => {
+        const matchesQuery = n.title.toLowerCase().includes(searchQuery) || n.body.toLowerCase().includes(searchQuery);
+        const matchesCat = categoryFilter === 'ALL' || n.category === categoryFilter;
+        return matchesQuery && matchesCat;
+      });
+
+      // Calculate total active reminders
+      let activeRemindersCount = 0;
+      notes.forEach(n => {
+        activeRemindersCount += n.reminders.filter(r => !r.fired).length;
+      });
+      document.getElementById('activeRemindersCount').innerText = activeRemindersCount;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full neo-box p-8 rounded-2xl bg-white text-center text-charcoal-muted">
+            <span class="text-3xl block mb-2">📌</span>
+            <p class="font-bold text-sm">No notes found.</p>
+            <p class="text-xs text-stone-500 mt-1">Create your first note and reminder above!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(n => {
+        const urgentBorder = n.urgent ? 'urgent-border' : '';
+
+        return `
+          <div class="neo-box rounded-2xl p-5 bg-white flex flex-col justify-between space-y-4 ${urgentBorder}">
+            
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="font-extrabold text-base text-charcoal leading-snug">${n.title}</h4>
+                <button onclick="deleteNote('${n.id}')" class="text-stone-400 hover:text-coral font-bold text-xs">✕</button>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-[10px] font-extrabold bg-beige-100 rounded-md border border-charcoal">${n.category}</span>
+                ${n.urgent ? `<span class="px-2 py-0.5 text-[10px] font-extrabold rounded-md urgent-badge border border-coral">🚨 Urgent Note</span>` : ''}
+              </div>
+
+              <p class="text-xs text-charcoal-muted font-medium whitespace-pre-wrap leading-relaxed pt-1">
+                ${n.body || '<em class="text-stone-400">No additional body text.</em>'}
+              </p>
+            </div>
+
+            <!-- Scheduled Reminders Box -->
+            <div class="pt-3 border-t border-stone-200 space-y-2">
+              <div class="flex items-center justify-between text-[11px] font-extrabold uppercase text-charcoal-muted">
+                <span>⏰ Reminders (${n.reminders.length})</span>
+                <button onclick="addReminderToNote('${n.id}')" class="text-warmorange hover:underline font-bold">+ Add Time</button>
+              </div>
+
+              ${n.reminders.length > 0 ? `
+                <div class="space-y-1">
+                  ${n.reminders.map(r => `
+                    <div class="flex items-center justify-between p-1.5 rounded-lg text-xs font-mono border ${r.fired ? 'bg-stone-100 border-stone-300 text-stone-500 line-through' : 'bg-warmorange-light border-warmorange text-charcoal'}">
+                      <span>${new Date(r.datetime).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</span>
+                      <div class="flex items-center gap-1">
+                        ${r.fired ? '<span class="text-[10px] text-stone-500">Triggered</span>' : '<span class="text-[10px] text-coral font-bold">Active</span>'}
+                        <button onclick="deleteReminder('${n.id}', '${r.id}')" class="ml-1 text-stone-400 hover:text-coral font-bold">✕</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : '<div class="text-[11px] text-stone-400 italic">No reminders set</div>'}
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+
+    /* ===================================================================
+       TAB 3: FOCUS TIMER & SESSION LOG MODULE
+       =================================================================== */
+    function populateTimerTaskDropdown() {
+      const select = document.getElementById('timerTaskSelect');
+      const activeTasks = tasks.filter(t => !t.completed);
+
+      select.innerHTML = '<option value="">🎯 General Unlinked Focus Session</option>' + 
+        activeTasks.map(t => `<option value="${t.id}">${t.urgent ? '🚨 ' : ''}${t.title} (${t.category})</option>`).join('');
+
+      if (selectedTaskIdForTimer) {
+        select.value = selectedTaskIdForTimer;
+        handleTimerTaskChange();
+      }
+    }
+
+    function handleTimerTaskChange() {
+      const select = document.getElementById('timerTaskSelect');
+      selectedTaskIdForTimer = select.value;
+
+      const detailsDiv = document.getElementById('timerSelectedTaskDetails');
+      const task = tasks.find(t => t.id === selectedTaskIdForTimer);
+
+      if (task) {
+        document.getElementById('timerTaskEst').innerText = `${task.estMinutes}m`;
+        document.getElementById('timerTaskLogged').innerText = `${task.loggedMinutes || 0}m`;
+        detailsDiv.classList.remove('hidden');
+      } else {
+        detailsDiv.classList.add('hidden');
+      }
+    }
+
+    function setTimerPreset(mins, mode) {
+      currentTimerMode = mode;
+      timerTotalSeconds = mins * 60;
+      timerRemainingSeconds = timerTotalSeconds;
+
+      document.getElementById('customTimerMins').value = mins;
+      document.getElementById('timerModeLabel').innerText = `${mode} Session`;
+
+      updateTimerDisplay();
+
+      if (isTimerRunning) {
+        toggleTimer(); // Stop timer if currently running
+      }
+    }
+
+    function applyCustomTimer() {
+      const mins = parseInt(document.getElementById('customTimerMins').value) || 25;
+      setTimerPreset(mins, 'Custom');
+    }
+
+    function toggleTimer() {
+      initAudioContext();
+      const btnText = document.getElementById('startPauseText');
+      const btnIcon = document.getElementById('startPauseIcon');
+      const statusSub = document.getElementById('timerStatusSub');
+
+      if (isTimerRunning) {
+        // Pause timer
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        btnText.innerText = "Resume Focus";
+        btnIcon.innerText = "▶️";
+        statusSub.innerText = "Paused";
+      } else {
+        // Start timer
+        isTimerRunning = true;
+        btnText.innerText = "Pause Session";
+        btnIcon.innerText = "⏸️";
+        statusSub.innerText = "Focus In Progress...";
+
+        playBeep(600, 'sine', 0.1);
+
+        timerInterval = setInterval(() => {
+          if (timerRemainingSeconds > 0) {
+            timerRemainingSeconds--;
+            updateTimerDisplay();
+          } else {
+            // Timer completed!
+            completeTimerSession();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerRemainingSeconds = timerTotalSeconds;
+
+      document.getElementById('startPauseText').innerText = "Start Focus";
+      document.getElementById('startPauseIcon').innerText = "▶️";
+      document.getElementById('timerStatusSub').innerText = "Ready to Start";
+
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerRemainingSeconds / 60);
+      const secs = timerRemainingSeconds % 60;
+      const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      document.getElementById('timerDisplay').innerText = formatted;
+
+      // Update circular height progress bar
+      const percent = ((timerTotalSeconds - timerRemainingSeconds) / timerTotalSeconds) * 100;
+      document.getElementById('timerProgressBg').style.height = `${percent}%`;
+    }
+
+    function completeTimerSession() {
+      if (timerInterval) clearInterval(timerInterval);
+      isTimerRunning = false;
+
+      const elapsedMins = Math.max(1, Math.round(timerTotalSeconds / 60));
+      let taskTitle = "General Focus Session";
+
+      if (selectedTaskIdForTimer) {
+        const task = tasks.find(t => t.id === selectedTaskIdForTimer);
+        if (task) {
+          task.loggedMinutes = (task.loggedMinutes || 0) + elapsedMins;
+          taskTitle = task.title;
+        }
+      }
+
+      // Log session history
+      timeLogs.unshift({
+        id: 'log-' + Date.now(),
+        taskTitle: taskTitle,
+        durationMinutes: elapsedMins,
+        mode: currentTimerMode,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+      saveData();
+      renderAll();
+      resetTimer();
+
+      // Trigger completion audio alarm
+      triggerAlarmSequence(
+        "⏱️ TIMER FINISHED!",
+        `Great job! You completed a ${elapsedMins}-minute ${currentTimerMode} session for "${taskTitle}".`
+      );
+    }
+
+    function clearTimeLogs() {
+      if (confirm("Are you sure you want to clear your focus time history?")) {
+        timeLogs = [];
+        saveData();
+        renderTimerLogs();
+      }
+    }
+
+    function renderTimerLogs() {
+      const container = document.getElementById('timeLogList');
+      const totalSessions = timeLogs.length;
+      const accumulatedMins = timeLogs.reduce((sum, l) => sum + (l.durationMinutes || 0), 0);
+
+      document.getElementById('totalSessionsCount').innerText = totalSessions;
+      document.getElementById('accumulatedTimeDisplay').innerText = `${accumulatedMins} mins`;
+
+      if (timeLogs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-charcoal-muted text-xs font-bold">
+            No session history recorded yet. Complete a focus timer to log your time!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = timeLogs.map(l => `
+        <div class="neo-box p-3 rounded-xl bg-beige-50 flex items-center justify-between text-xs">
+          <div class="space-y-0.5">
+            <span class="font-bold text-charcoal block">${l.taskTitle}</span>
+            <span class="text-[10px] text-charcoal-muted font-medium">${l.mode} Mode • ${l.timestamp}</span>
+          </div>
+          <div class="font-mono font-extrabold text-warmorange bg-white px-2.5 py-1 rounded-lg border border-charcoal">
+            +${l.durationMinutes}m
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
